@@ -71,7 +71,7 @@ end
 MODEL = Chain(
             Conv((15,1), CHANNEL_COUNT => 16, identity, pad = SamePad()),
             Dropout(.25),
-            swish,
+            relu,
             Conv((15,1), 16 => 64, identity, dilation = (9, 1), pad = SamePad()),
             Dropout(.35),
             MeanPool((32, 1)),
