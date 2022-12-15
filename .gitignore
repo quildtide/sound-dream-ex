@@ -1,0 +1,7 @@
+fixed audio/*
+auto_store_params/*
+model_backup/*
+modif_out/*
+to_be_modified/*
+log
+*.wav
