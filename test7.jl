@@ -16,7 +16,7 @@ const DATA_FOL = "../dreamsinger/data/aesthetics"
 const GENRE_COUNT = 3
 
 function get_metadata()
-    data = CSV.File("data/aesthetics/processed/info.csv")
+    data = CSV.File("$DATA_FOL/processed/info.csv")
 
     cols = data |> Tables.columntable
 
@@ -72,15 +72,15 @@ MODEL = Chain(
             Conv((15,1), CHANNEL_COUNT => 16, identity, pad = SamePad()),
             Dropout(.25),
             swish,
-            Conv((15,1), 16 => 32, identity, dilation = (9, 1), pad = SamePad()),
+            Conv((15,1), 16 => 64, identity, dilation = (9, 1), pad = SamePad()),
             Dropout(.35),
             MeanPool((32, 1)),
             swish,
-            Conv((9,1), 32 => 64, identity, dilation = (7, 1), pad = SamePad()),
+            Conv((9,1), 64 => 128, identity, dilation = (7, 1), pad = SamePad()),
             Dropout(.45),
             MeanPool((8, 1)),
             swish,
-            Conv((1,1), 64 => GENRE_COUNT, identity, dilation = (5, 1)),
+            Conv((1,1), 128 => GENRE_COUNT, identity, dilation = (5, 1)),
             Dropout(.5),
             AdaptiveMeanPool((1, 1)), # guaranteed dims: (256, 1, 128, B)
             Flux.flatten,
@@ -113,7 +113,7 @@ function sounddreamer_train(reps = 1000, m_iv = 100)
         x = x |> gpu
         y = y |> gpu
 
-        ps = params(MODEL)
+        ps = Flux.params(MODEL)
 
         loss, back = @sync Zygote.pullback(() -> Flux.Losses.logitcrossentropy(MODEL(x), y), ps)
 
@@ -130,10 +130,10 @@ function sounddreamer_train(reps = 1000, m_iv = 100)
 end
 
 function sounddreamer_continuous()
-    while time() < 1608135358
+    for _ in 1:5
         sounddreamer_train(5000, 5000)
-        weights = deepcopy(params(cpu(MODEL)))
-        @save "auto_store_params/checkpoint_$(time()).bson" weights
+        cpu_model = cpu(MODEL)
+        @save "auto_store_params/checkpoint_$(time()).bson" cpu_model
     end
 end
 
@@ -141,7 +141,8 @@ function modify1_obj(y_hat)
     mean(y_hat)
 end
 
-modify2_obj(y_hat) = sum(y_hat .* cu([1,0,0,0]))
+modify2_obj(y_hat) = sum(y_hat .* cu([1,0,0]))
+modify2_obj(y_hat) = sum(y_hat .* cu([1,0,0]))
 
 MODIFIZER = Flux.Optimise.Descent()
 
@@ -169,12 +170,12 @@ function sounddreamer_modify(filename, outname, reps = 100, layer = 17, m_iv = 1
     loss_hist = zeros(m_iv)
 
     for i in 1:reps
-        l4_μ = deepcopy(MODEL[4].μ)
-        l8_μ = deepcopy(MODEL[8].μ) 
-        l12_μ = deepcopy(MODEL[12].μ)
-        l4_σ² = deepcopy(MODEL[4].σ²)
-        l8_σ² = deepcopy(MODEL[8].σ²) 
-        l12_σ² = deepcopy(MODEL[12].σ²)
+        # l4_μ = deepcopy(MODEL[4].μ)
+        # l8_μ = deepcopy(MODEL[8].μ) 
+        # l12_μ = deepcopy(MODEL[12].μ)
+        # l4_σ² = deepcopy(MODEL[4].σ²)
+        # l8_σ² = deepcopy(MODEL[8].σ²) 
+        # l12_σ² = deepcopy(MODEL[12].σ²)
 
         ps = Flux.params(x)
 
@@ -190,12 +191,12 @@ function sounddreamer_modify(filename, outname, reps = 100, layer = 17, m_iv = 1
             println("Loop $i--last $m_iv average modification loss: $(mean(loss_hist))")
         end
         
-        MODEL[4].μ = l4_μ
-        MODEL[8].μ = l8_μ
-        MODEL[12].μ = l12_μ
-        MODEL[4].σ² = l4_σ²
-        MODEL[8].σ² = l8_σ²
-        MODEL[12].σ² = l12_σ²
+        # MODEL[4].μ = l4_μ
+        # MODEL[8].μ = l8_μ
+        # MODEL[12].μ = l12_μ
+        # MODEL[4].σ² = l4_σ²
+        # MODEL[8].σ² = l8_σ²
+        # MODEL[12].σ² = l12_σ²
     end
 
     base_filename = "modif_out/$(outname)_l$(layer)_r$(reps)"
