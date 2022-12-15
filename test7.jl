@@ -256,7 +256,7 @@ function sounddreamer_test(reps = 1000)
 
     datachannel = Channel(dataloader_helper)
 
-    conf_matrix = zeros(Int, (4, 4, 5))
+    conf_matrix = zeros(Int, (3, 3, 5))
 
     length_dict = Dict(sort(lengths)[i] => i for i in 1:length(lengths)) 
 
