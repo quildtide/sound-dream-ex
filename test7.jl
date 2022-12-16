@@ -71,7 +71,7 @@ end
 MODEL = Chain(
             Conv((15,1), CHANNEL_COUNT => 16, identity, pad = SamePad()),
             Dropout(.25),
-            relu,
+            x -> leakyrelu(x, 0.1),
             GroupNorm(16,2),
             Conv((15,1), 16 => 64, identity, dilation = (9, 1), pad = SamePad()),
             Dropout(.35),
